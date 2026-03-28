@@ -1,12 +1,15 @@
-# inference.py
 import os
 import requests
 import json
 from openai import OpenAI
 
+# 1. SETTINGS
+# Change this to your direct HF Space URL for the final test
+ENV_URL = "https://abhijeet-openenv-email-triage-final.hf.space"
+
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4o")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
+HF_TOKEN = os.environ.get("HF_TOKEN", "") # Ensure your API Key is set in your terminal
 
 if not HF_TOKEN:
     print("WARNING: HF_TOKEN environment variable is not set. Inference might fail.")
@@ -16,12 +19,11 @@ client = OpenAI(
     api_key=HF_TOKEN or "dummy"
 )
 
-ENV_URL = "http://localhost:7860"
-
 def run_task(level: str):
     print(f"\n--- Running Task: {level.upper()} ---")
     
     try:
+        # Note: Sending task_level in the body as per your script logic
         res = requests.post(f"{ENV_URL}/reset", json={"task_level": level})
         res.raise_for_status()
         observation = res.json()
@@ -31,18 +33,14 @@ def run_task(level: str):
         return
 
     system_prompt = """You are an Elite Autonomous Inbox Manager.
-You will receive an observation (JSON) showing emails currently in the inbox, available_folders, and calendar_slots.
-Your job is to read the emails and categorize them, route them, or book a meeting.
-
-You MUST respond with a valid JSON object matching the following Action schema (no markdown blocks, just pure JSON).
-
-Schema:
+You will receive an observation (JSON) showing emails, folders, and calendar slots.
+Respond with valid JSON matching the schema:
 {
   "category": "spam" | "invoice" | "meeting_request" | "general",
-  "routed_folder": string | null (choose from available_folders),
-  "meeting_booked_time": string | null (choose from calendar_slots if 'meeting_request'),
+  "routed_folder": string | null,
+  "meeting_booked_time": string | null,
   "is_deleted": boolean,
-  "notes": "string explaining reasoning"
+  "notes": "string"
 }"""
 
     user_prompt = f"Observation: {json.dumps(observation, indent=2)}\n\nProvide your Action JSON."
@@ -57,19 +55,18 @@ Schema:
             response_format={"type": "json_object"},
             temperature=0.0
         )
-        action_json_str = response.choices[0].message.content
-        action_dict = json.loads(action_json_str)
+        action_dict = json.loads(response.choices[0].message.content)
         print(f"Agent Action: {action_dict}")
     except Exception as e:
         print(f"LLM Error: {e}")
         return
 
     try:
+        # Submitting the action to the cloud environment
         step_res = requests.post(f"{ENV_URL}/step", json=action_dict)
         step_res.raise_for_status()
         result = step_res.json()
-        print(f"Step Result -> Reward: {result['reward']} | Done: {result['done']}")
-        print(f"Info: {result['info']}")
+        print(f"Step Result -> Reward: {result.get('reward')} | Done: {result.get('done')}")
     except Exception as e:
         print(f"Step Error: {e}")
 
