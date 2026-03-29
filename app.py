@@ -27,7 +27,10 @@ class StepResponse(BaseModel):
     info: Dict[str, Any]
 
 @app.post("/reset", response_model=Observation)
-def reset_env(req: ResetRequest):
+def reset_env(req: Optional[ResetRequest] = None):
+    if req is None:
+        req = ResetRequest()
+        
     if req.task_level not in TASKS:
         raise HTTPException(status_code=400, detail="Invalid task level.")
     
