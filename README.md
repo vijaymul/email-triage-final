@@ -1,3 +1,13 @@
+---
+title: Email Triage OpenEnv
+emoji: 📨
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+app_file: app.py
+---
+
 # OpenEnv Hackathon R1: Email Triage & Inbox Management
 
 A real-world automated inbox triage simulator. Built for the OpenEnv API evaluation spec using strict Pydantic models.
