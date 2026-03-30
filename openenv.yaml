@@ -1,16 +1,36 @@
+# OpenEnv Application Definition Spec
+name: "hackathon-email-triage"
 version: "1.0.0"
-name: "email-triage-env"
-description: "An OpenEnv environment for an Autonomous Inbox Manager to triage emails (spam, invoices, meetings)."
-author: "OpenEnv Developer"
-api:
-  url: "http://localhost:7860"
-resources:
-  cpu: 2
-  memory: "8gb"
+description: "OpenEnv Hackathon R1 Submission - Email Triage & Inbox Management"
+
+# Environment mapping config
+environment:
+  entrypoint: "main:app"
+  language: "python"
+  dependencies:
+    - "pydantic"
+    - "openai"
+    - "fastapi"
+    - "uvicorn"
+
+# Task matrix that OpenEnv will inject during validation staging
 tasks:
-  - id: "easy"
-    description: "Detect obvious spam and delete it, routing it to the spam folder."
-  - id: "medium"
-    description: "Identify an invoice email and route it securely to the invoices folder."
-  - id: "hard"
-    description: "Identify an urgent meeting request, parse the calendar slots, book a valid time, and route to priority."
+  - id: "spam-deletion"
+    level: "easy"
+    description: "Identify and delete a Spam email."
+    max_steps: 10
+
+  - id: "sort-invoices"
+    level: "medium"
+    description: "Sort Invoices and Meeting Requests into correct folders."
+    max_steps: 10
+
+  - id: "schedule-meeting"
+    level: "hard"
+    description: "Find a meeting request and select a valid time slot from a provided calendar."
+    max_steps: 10
+
+# Grading enforcement parameters
+evaluation:
+  reward_range: [0.0, 1.0]
+  fail_on_exception: true
