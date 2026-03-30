@@ -1,27 +1,58 @@
-from fastapi import FastAPI, Request
+import os
+import sys
+from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Dict, Any
 
-app = FastAPI()
+# Ensure root directory is in sys.path so we can import modules from there
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
 
-# Add a Root GET for Hugging Face Health Check
+from models import Observation, Action, Reward, EnvironmentState
+from environment import EmailEnv
+
+app = FastAPI(title="Email Triage OpenEnv Interface")
+
+# Instantiate a global instance of our environment.
+env = EmailEnv(task_level="hard")
+
+class StepResponse(BaseModel):
+    observation: Observation
+    reward: Reward
+
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "Email Triage OpenEnv is running."}
-
-# The Validator sends a POST to /reset with a JSON body
-@app.post("/reset")
-@app.post("/reset/")  # Double-check with trailing slash
-async def reset(request: Request):
-    # This ensures the POST request doesn't return 405 Method Not Allowed
     return {
-        "inbox": [
-            {"id": "1", "sender": "HR", "subject": "Interview", "body": "Schedule it.", "date": "2026-03-29"}
-        ],
-        "available_folders": ["Inbox", "Spam"],
-        "calendar_slots": ["10:00 AM", "02:00 PM"]
+        "status": "online", 
+        "message": "OpenEnv Hackathon Email Triage Simulator. Visit http://127.0.0.1:7860/docs for the API Swagger interface!"
     }
 
-@app.post("/step")
-@app.post("/step/")
-async def step(action: dict):
-    return {"reward": 1.0, "done": True, "info": "Step successful"}
+@app.post("/reset", response_model=Observation)
+async def reset_env(task_level: str = "easy"):
+    """
+    Reset the environment observation explicitly.
+    Supports a custom difficulty string matching Hackathon Matrix IDs.
+    """
+    env.task_level = task_level.lower()
+    return env.reset()
+
+@app.post("/step", response_model=StepResponse)
+async def step_env(action: Action):
+    """
+    Accepts Pydantic wrapped action unions strictly enforced natively via FastAPI route specs.
+    Steps the environment and returns the subsequent observation state + exact grader score.
+    """
+    obs, reward = env.step(action)
+    return StepResponse(observation=obs, reward=reward)
+
+@app.get("/state", response_model=EnvironmentState)
+async def get_state():
+    """
+    Dumps the internal proxy ground truth validation state required by standard automated testing schemas.
+    """
+    return env.state()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860)
