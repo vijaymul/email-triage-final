@@ -4,13 +4,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Dict, Any
 
-# Ensure root directory is in sys.path so we can import modules from there
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if root_dir not in sys.path:
-    sys.path.append(root_dir)
-
-from models import Observation, Action, Reward, EnvironmentState
-from environment import EmailEnv
+from server.models import Observation, Action, Reward, EnvironmentState
+from server.environment import EmailEnv
 
 app = FastAPI(title="Email Triage OpenEnv Interface")
 
