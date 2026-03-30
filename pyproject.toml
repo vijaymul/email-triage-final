@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-openenv-server = "server.app:app"
+server = "server.app:app"
 
 [project.optional-dependencies]
 dev = [
@@ -30,4 +30,4 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["."]
+packages = ["server", "environment.py", "models.py", "main.py", "inference.py"]
