@@ -2,8 +2,8 @@ import os
 import json
 from openai import OpenAI
 from pydantic import BaseModel
-from models import Action
-from environment import EmailEnv
+from server.models import Action
+from server.environment import EmailEnv
 
 # This setup is exactly what the judges want to see!
 client = OpenAI(
