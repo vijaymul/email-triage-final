@@ -30,10 +30,5 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["server"]
-include = [
-    "environment.py",
-    "models.py",
-    "main.py",
-    "inference.py",
-]
+packages = ["."]
+include = ["server/*.py", "*.py"]
