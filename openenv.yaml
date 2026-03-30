@@ -5,7 +5,7 @@ description: "OpenEnv Hackathon R1 Submission - Email Triage & Inbox Management"
 
 # Environment mapping config
 environment:
-  entrypoint: "main:app"
+  entrypoint: "server.app:main"
   language: "python"
   dependencies:
     - "pydantic"
