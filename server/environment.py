@@ -149,5 +149,5 @@ class EmailEnv:
                 return s
         return None
     
-    def state(self):
+    def get_full_state(self):
         return self.state
