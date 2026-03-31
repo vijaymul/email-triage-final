@@ -1,0 +1,17 @@
+from typing import List, Literal, Union, Annotated
+from datetime import datetime
+from enum import Enum
+from pydantic import BaseModel, Field
+
+
+class FolderType(str, Enum):
+        INBOX = "inbox"
+        SPAM = "spam"
+        INVOICES = "invoices"
+        MEETINGS = "meetings"
+        TRASH = "trash"
+        ARCHIVE = "archive"
+
+
+    class Email(BaseModel):
+            id: str = Field(..., description="Unique identifier for ")
