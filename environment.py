@@ -1,177 +1,153 @@
-from typing import Tuple, Optional
 from datetime import datetime, timedelta
-from models import (
-    FolderType, Email, CalendarSlot, Observation, Action, Reward, EnvironmentState, ActionType
+import random
+import uuid
+from typing import Tuple, List
+
+from .models import (
+    Observation, Action, ActionType, Reward, EnvironmentState,
+    Email, FolderType, CalendarSlot, DeleteAction, MoveToFolderAction,
+    ReplyAction, ScheduleMeetingAction
 )
 
 class EmailEnv:
+    """
+    Simulation environment for the Email Triage agent.
+    """
     def __init__(self, task_level: str = "easy"):
-        """
-        Initialize the environment.
-        :param task_level: Choose between 'easy', 'medium', 'hard'
-        """
         self.task_level = task_level.lower()
-        self._state = EnvironmentState(current_time=datetime.now())
-        self.max_steps = 10
-        self.current_step = 0
         self.reset()
-        
+
     def reset(self) -> Observation:
-        self.current_step = 0
-        # Set a standard baseline time for the simulation
-        base_time = datetime(2026, 3, 27, 9, 0, 0)
-        self._state.current_time = base_time
-        
-        emails = []
-        slots = []
-        
-        if self.task_level in ["easy", "all"]:
-            emails.append(Email(
-                id="email_easy_1", sender="spammer@scam.net", subject="You won $1M!!!",
-                body="Click here to claim your prize.", folder=FolderType.INBOX, timestamp=base_time
-            ))
-            
-        if self.task_level in ["medium", "all"]:
-            emails.append(Email(
-                id="email_med_1", sender="billing@vendor.com", subject="Invoice #1024",
-                body="Please find the attached invoice for $500.", folder=FolderType.INBOX, timestamp=base_time
-            ))
-            emails.append(Email(
-                id="email_med_2", sender="colleague@company.com", subject="Sync next week",
-                body="Can we meet to discuss the project?", folder=FolderType.INBOX, timestamp=base_time
-            ))
-            
-        if self.task_level in ["hard", "all"]:
-            emails.append(Email(
-                id="email_hard_1", sender="boss@company.com", subject="Urgent: Q3 Planning",
-                body="Please schedule a time for us to review Q3 plans from the available slots.", folder=FolderType.INBOX, timestamp=base_time
-            ))
-            slots.extend([
-                CalendarSlot(id="slot_1", start_time=base_time + timedelta(hours=1), end_time=base_time + timedelta(hours=2)),
-                CalendarSlot(id="slot_2", start_time=base_time + timedelta(hours=3), end_time=base_time + timedelta(hours=4))
-            ])
-            
-        self._state.all_emails = emails
-        self._state.calendar_slots = slots
-        
+        self.state = self._generate_initial_state()
         return self._get_observation()
+
+    def _generate_initial_state(self) -> EnvironmentState:
+        now = datetime(2024, 3, 30, 10, 0, 0)
+        emails = []
         
-    def _get_observation(self) -> Observation:
-        # Agent only sees emails currently residing in the INBOX.
-        visible_emails = [e for e in self._state.all_emails if e.folder == FolderType.INBOX]
-        return Observation(
-            emails=visible_emails,
-            calendar_slots=self._state.calendar_slots,
-            current_time=self._state.current_time
+        # 1. Spam (Easy)
+        emails.append(Email(
+            id=str(uuid.uuid4()),
+            sender="lottery@scam.com",
+            subject="YOU WON $1,000,000!!",
+            body="Congratulations! You have won the international mega lottery. Click link below to claim your prize.",
+            folder=FolderType.INBOX,
+            timestamp=now - timedelta(minutes=5)
+        ))
+
+        # 2. Invoice (Medium)
+        emails.append(Email(
+            id=str(uuid.uuid4()),
+            sender="billing@cloudprovider.com",
+            subject="Invoice #INV-2024-001",
+            body="Your monthly invoice for cloud services is attached. Please pay by the 15th of next month.",
+            folder=FolderType.INBOX,
+            timestamp=now - timedelta(minutes=10)
+        ))
+
+        # 3. Meeting Request (Medium/Hard)
+        emails.append(Email(
+            id=str(uuid.uuid4()),
+            sender="boss@company.com",
+            subject="Weekly Sync Request",
+            body="Hi, I'd like to schedule our weekly sync. Please find a slot on Monday afternoon.",
+            folder=FolderType.INBOX,
+            timestamp=now - timedelta(minutes=15)
+        ))
+
+        # Normal Emails
+        emails.append(Email(
+            id=str(uuid.uuid4()),
+            sender="newsletter@tech.com",
+            subject="Weekly Tech Digest",
+            body="Here is your weekly summary of tech news. Trends this week: AI, Web3, and standard packages.",
+            folder=FolderType.INBOX,
+            timestamp=now - timedelta(minutes=20)
+        ))
+
+        # Generate Calendar Slots (For Hard task)
+        slots = [
+            CalendarSlot(id="slot-1", start_time=now + timedelta(days=1, hours=4), end_time=now + timedelta(days=1, hours=5), is_available=True),
+            CalendarSlot(id="slot-2", start_time=now + timedelta(days=1, hours=5), end_time=now + timedelta(days=1, hours=6), is_available=False),
+            CalendarSlot(id="slot-3", start_time=now + timedelta(days=1, hours=6), end_time=now + timedelta(days=1, hours=7), is_available=True),
+        ]
+
+        return EnvironmentState(
+            all_emails=emails,
+            calendar_slots=slots,
+            current_time=now
         )
-        
-    def state(self) -> EnvironmentState:
-        """Returns the internal ground truth state (OpenEnv standard API point)."""
-        return self._state
-        
+
+    def _get_observation(self) -> Observation:
+        # Agent only sees emails currently in the INBOX
+        inbox_emails = [e for e in self.state.all_emails if e.folder == FolderType.INBOX]
+        return Observation(
+            emails=inbox_emails,
+            calendar_slots=self.state.calendar_slots,
+            current_time=self.state.current_time
+        )
+
     def step(self, action: Action) -> Tuple[Observation, Reward]:
-        """
-        Apply an action to the environment, update the state, and evaluate the reward.
-        Returns: (Observation, Reward)
-        """
-        self.current_step += 1
-        
-        # 1. Apply Action Logic
-        if action.action_type == ActionType.DELETE:
-            for e in self._state.all_emails:
-                if e.id == action.email_id:
-                    e.folder = FolderType.TRASH
-                    break
-                    
-        elif action.action_type == ActionType.MOVE_TO_FOLDER:
-            for e in self._state.all_emails:
-                if e.id == action.email_id:
-                    e.folder = action.target_folder
-                    break
-                    
-        elif action.action_type == ActionType.REPLY:
-            # Simplified: Marks an email as read once replied to. 
-            # In a real setup, we might log the agent's message text somewhere.
-            for e in self._state.all_emails:
-                if e.id == action.email_id:
-                    e.is_read = True
-                    break
-                    
-        elif action.action_type == ActionType.SCHEDULE_MEETING:
-            # Mark the slot as booked
-            for slot in self._state.calendar_slots:
-                if slot.id == action.slot_id and slot.is_available:
-                    slot.is_available = False
-            # Clear the meeting request from the inbox 
-            for e in self._state.all_emails:
-                if e.id == action.email_id:
-                    e.folder = FolderType.ARCHIVE
-                    break
-                    
-        elif action.action_type == ActionType.DO_NOTHING:
-            pass
-
-        # 2. Grade the current state based on the task criteria
-        reward = self._grade_task()
-        
-        # 3. Check termination conditions
-        if reward.score == 1.0 or self.current_step >= self.max_steps:
-            reward.is_done = True
-            
-        return self._get_observation(), reward
-
-    def _grade_task(self) -> Reward:
-        """
-        Programmatic grader that returns a score between 0.0 and 1.0.
-        """
-        score = 0.0
-        reason = "Task incomplete."
+        reward = Reward(score=0.0, reason="Action ignored or invalid for task level.", is_done=False)
         
         if self.task_level == "easy":
-            spam_email = next((e for e in self._state.all_emails if e.id == "email_easy_1"), None)
-            if spam_email and spam_email.folder == FolderType.TRASH:
-                score = 1.0
-                reason = "Successfully identified and deleted the spam email."
-            else:
-                score = 0.0
-                reason = "Spam email is still not in the TRASH folder."
-                
+            reward = self._evaluate_easy(action)
         elif self.task_level == "medium":
-            invoice = next((e for e in self._state.all_emails if e.id == "email_med_1"), None)
-            meeting = next((e for e in self._state.all_emails if e.id == "email_med_2"), None)
-            
-            correct_invoice = invoice and invoice.folder == FolderType.INVOICES
-            correct_meeting = meeting and meeting.folder == FolderType.MEETINGS
-            
-            if correct_invoice and correct_meeting:
-                score = 1.0
-                reason = "Successfully sorted both invoices and meeting requests."
-            elif correct_invoice:
-                score = 0.5
-                reason = "Sorted the invoice, but missed the meeting request."
-            elif correct_meeting:
-                score = 0.5
-                reason = "Sorted the meeting request, but missed the invoice."
-            else:
-                score = 0.0
-                reason = "Emails are not sorted into their correct target folders yet."
-                
+            reward = self._evaluate_medium(action)
         elif self.task_level == "hard":
-            meeting_req = next((e for e in self._state.all_emails if e.id == "email_hard_1"), None)
-            booked_slots = [s for s in self._state.calendar_slots if not s.is_available]
-            
-            if len(booked_slots) == 1 and meeting_req and meeting_req.folder != FolderType.INBOX:
-                score = 1.0
-                reason = "Successfully scheduled a valid meeting time and archived the request."
-            elif len(booked_slots) == 1:
-                score = 0.5
-                reason = "Scheduled a meeting time, but the request email was left in the inbox."
-            else:
-                score = 0.0
-                reason = "Valid meeting not yet scheduled."
-                
-        elif self.task_level == "all":
-            score = 0.0
-            reason = "Awaiting completion. ('all' level is a proxy that's not strictly graded yet)"
+            reward = self._evaluate_hard(action)
 
-        return Reward(score=score, reason=reason, is_done=False)
+        return self._get_observation(), reward
+
+    def _evaluate_easy(self, action: Action) -> Reward:
+        # Goal: Delete the scam email
+        target_subject = "YOU WON $1,000,000!!"
+        if action.action_type in [ActionType.DELETE, ActionType.MOVE_TO_FOLDER]:
+            email = self._get_email(getattr(action, 'email_id'))
+            if email and email.subject == target_subject:
+                if action.action_type == ActionType.DELETE or (action.action_type == ActionType.MOVE_TO_FOLDER and action.target_folder == FolderType.TRASH):
+                    email.folder = FolderType.TRASH
+                    return Reward(score=1.0, reason="Successfully deleted spam email.", is_done=True)
+                
+        return Reward(score=0.0, reason="Did not correctly triage the spam email.", is_done=True)
+
+    def _evaluate_medium(self, action: Action) -> Reward:
+        # Goal: Move invoice to invoices and boss sync to meetings
+        if action.action_type == ActionType.MOVE_TO_FOLDER:
+            email = self._get_email(action.email_id)
+            if email:
+                if "Invoice" in email.subject and action.target_folder == FolderType.INVOICES:
+                    email.folder = FolderType.INVOICES
+                    return Reward(score=0.5, reason="Correctly sorted invoice.", is_done=False)
+                if "Weekly Sync" in email.subject and action.target_folder == FolderType.MEETINGS:
+                    email.folder = FolderType.MEETINGS
+                    return Reward(score=1.0, reason="Correctly sorted meeting request.", is_done=True)
+        
+        return Reward(score=0.0, reason="Invalid move or wrong target folder.", is_done=True)
+
+    def _evaluate_hard(self, action: Action) -> Reward:
+        # Goal: Schedule meeting in an available slot
+        if action.action_type == ActionType.SCHEDULE_MEETING:
+            email = self._get_email(action.email_id)
+            slot = self._get_slot(action.slot_id)
+            if email and "Weekly Sync" in email.subject and slot and slot.is_available:
+                slot.is_available = False
+                email.folder = FolderType.ARCHIVE
+                return Reward(score=1.0, reason="Successfully scheduled meeting in an available slot.", is_done=True)
+        
+        return Reward(score=0.0, reason="Failed to schedule meeting correctly.", is_done=True)
+
+    def _get_email(self, email_id: str) -> Email:
+        for e in self.state.all_emails:
+            if e.id == email_id:
+                return e
+        return None
+
+    def _get_slot(self, slot_id: str) -> CalendarSlot:
+        for s in self.state.calendar_slots:
+            if s.id == slot_id:
+                return s
+        return None
+    
+    def state(self):
+        return self.state

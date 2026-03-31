@@ -82,6 +82,3 @@ class EnvironmentState(BaseModel):
 
 # Backward compatibility alias
 State = EnvironmentState
-
-# Backward compatibility alias
-State = EnvironmentState
