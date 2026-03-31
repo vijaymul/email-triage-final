@@ -21,11 +21,10 @@ class Email(BaseModel):
         is_read: bool = Field(default=False, description="Whether the email has been read")
 
 class CalendarSlot(BaseModel):
-        id: str = Field(..., description="Unique identifier for the calendar slot")
-        start_time: datetime = Field(..., description="Start time of the slot")
-        end_time: datetime = Field(..., description="End time of the slot")
-        summary: str = Field(..., description="Summary of the calendar event")
-        description: str = Field(default="", description="Description of the calendar event")
+    id: str = Field(..., description='Unique identifier for the calendar slot')
+    start_time: datetime = Field(..., description='Start time of the slot')
+    end_time: datetime = Field(..., description='End time of the slot')
+    is_available: bool = Field(default=True, description='Whether the slot is available to be booked')
 
 class Observation(BaseModel):
     """Observation provided to the agent at each step."""""
