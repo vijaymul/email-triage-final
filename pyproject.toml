@@ -31,4 +31,3 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["server"]
-include = ["server/*.py", "*.py"]
