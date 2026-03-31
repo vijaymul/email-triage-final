@@ -5,8 +5,12 @@ import os
 import sys
 
 # Ensure server package logic is accessible
-from .models import Action, Observation, Reward, EnvironmentState
-from .environment import EmailEnv
+try:
+    from .models import Action, Observation, Reward, EnvironmentState
+    from .environment import EmailEnv
+except ImportError:
+    from models import Action, Observation, Reward, EnvironmentState
+    from environment import EmailEnv
 
 app = FastAPI()
 # Initialize global environment instance
@@ -55,7 +59,7 @@ async def get_state():
     """
     Returns the full internal state (for grading/debug).
     """
-    return env.state()
+    return env.get_full_state()
 
 def main():
     import uvicorn
