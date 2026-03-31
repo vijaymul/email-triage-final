@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-server = "server.app:main"
+email-triage = "server.app:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["server"]
