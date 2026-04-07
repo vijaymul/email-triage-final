@@ -9,9 +9,12 @@ tasks:
   - id: "easy"
     difficulty: "easy"
     objective: "Identify and delete spam emails."
+    grader: true
   - id: "medium"
     difficulty: "medium"
     objective: "Sort invoices and meeting requests into appropriate folders."
+    grader: true
   - id: "hard"
     difficulty: "hard"
     objective: "Find a scheduling request and book an available calendar slot."
+    grader: true

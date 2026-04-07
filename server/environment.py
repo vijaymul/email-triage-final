@@ -88,7 +88,7 @@ class EmailEnv:
         )
 
     def step(self, action: Action) -> Tuple[Observation, Reward]:
-        reward = Reward(score=0.0, reason="Action ignored or invalid for task level.", is_done=False)
+        reward = Reward(score=0.1, reason="Action ignored or invalid for task level.", is_done=False)
         
         if self.task_level == "easy":
             reward = self._evaluate_easy(action)
@@ -107,9 +107,9 @@ class EmailEnv:
             if email and email.subject == target_subject:
                 if action.action_type == ActionType.DELETE or (action.action_type == ActionType.MOVE_TO_FOLDER and action.target_folder == FolderType.TRASH):
                     email.folder = FolderType.TRASH
-                    return Reward(score=1.0, reason="Successfully deleted spam email.", is_done=True)
+                    return Reward(score=0.9, reason="Successfully deleted spam email.", is_done=True)
                 
-        return Reward(score=0.0, reason="Did not correctly triage the spam email.", is_done=True)
+        return Reward(score=0.1, reason="Did not correctly triage the spam email.", is_done=True)
 
     def _evaluate_medium(self, action: Action) -> Reward:
         # Goal: Move invoice to invoices and boss sync to meetings
@@ -121,9 +121,9 @@ class EmailEnv:
                     return Reward(score=0.5, reason="Correctly sorted invoice.", is_done=False)
                 if "Weekly Sync" in email.subject and action.target_folder == FolderType.MEETINGS:
                     email.folder = FolderType.MEETINGS
-                    return Reward(score=1.0, reason="Correctly sorted meeting request.", is_done=True)
+                    return Reward(score=0.9, reason="Correctly sorted meeting request.", is_done=True)
         
-        return Reward(score=0.0, reason="Invalid move or wrong target folder.", is_done=True)
+        return Reward(score=0.1, reason="Invalid move or wrong target folder.", is_done=True)
 
     def _evaluate_hard(self, action: Action) -> Reward:
         # Goal: Schedule meeting in an available slot
@@ -133,9 +133,9 @@ class EmailEnv:
             if email and "Weekly Sync" in email.subject and slot and slot.is_available:
                 slot.is_available = False
                 email.folder = FolderType.ARCHIVE
-                return Reward(score=1.0, reason="Successfully scheduled meeting in an available slot.", is_done=True)
+                return Reward(score=0.9, reason="Successfully scheduled meeting in an available slot.", is_done=True)
         
-        return Reward(score=0.0, reason="Failed to schedule meeting correctly.", is_done=True)
+        return Reward(score=0.1, reason="Failed to schedule meeting correctly.", is_done=True)
 
     def _get_email(self, email_id: str) -> Email:
         for e in self.state.all_emails:
