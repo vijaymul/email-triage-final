@@ -1,8 +1,8 @@
 import os
 import json
 from openai import OpenAI
-from pydantic import BaseModel, ValidationError
-from server.models import Action, DoNothingAction, ActionType
+from pydantic import BaseModel
+from server.models import Action
 from server.environment import EmailEnv
 
 # This setup is exactly what the judges want to see!
@@ -45,34 +45,18 @@ def run_inference(task_level: str = "easy", max_steps: int = 10):
         
         user_prompt = f"Current Observation State:\n{obs_json}"
 
-        # Utilizing the standard chat create API for maximum compatibility across providers
-        try:
-            response = client.chat.completions.create(
-                model=model_to_use,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                # We request JSON specifically for models that support it
-                response_format={"type": "json_object"}
-            )
+        # Utilizing the newest structured parser guarantees correct JSON formatting against our Pydantic specs
+        response = client.beta.chat.completions.parse(
+            model=model_to_use, # Ensure we're targeting a model that supports strict structured outputs
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format=AgentOutput
+        )
 
-            raw_content = response.choices[0].message.content
-            print(f"Raw Model Output: {raw_content}")
-
-            # Parse the structured response manually
-            try:
-                agent_output = AgentOutput.model_validate_json(raw_content)
-                action = agent_output.action
-            except (ValidationError, json.JSONDecodeError) as parse_err:
-                print(f"Parsing error: {parse_err}. Falling back to default action.")
-                # We provide a safe fallback instead of crashing the pipeline
-                action = DoNothingAction()
-
-        except Exception as api_err:
-            print(f"API Error during inference: {api_err}")
-            # Fallback for network or endpoint issues
-            action = DoNothingAction()
+        agent_output = response.choices[0].message.parsed
+        action = agent_output.action
         
         print(f"Agent chose action: {action.action_type.value} -> {json.dumps(action.model_dump(), default=str)}")
 
