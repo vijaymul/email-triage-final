@@ -29,10 +29,11 @@ def run_inference():
     current_step = 0
     
     try:
-        # Client initialization inside the controlled scope
+        # 1. Initialize OpenAI client with the mandatory SST Proxy credentials
+        # The validator injects these values into the execution environment.
         client = OpenAI(
-            base_url="https://router.huggingface.co/v1",
-            api_key=os.environ.get("HF_TOKEN")
+            base_url=os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1"),
+            api_key=os.environ.get("API_KEY", os.environ.get("HF_TOKEN"))
         )
 
         for step in range(max_steps):
