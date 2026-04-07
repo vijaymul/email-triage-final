@@ -17,7 +17,8 @@ def run_inference():
     # Read configuration from environment with standard defaults
     task_level = os.environ.get("TASK_LEVEL", "hard").lower()
     max_steps = int(os.environ.get("MAX_STEPS", "10"))
-    model_name = os.environ.get("MODEL_NAME", "moonshotai/Kimi-K2-Instruct-0905")
+    model_name = os.environ.get("MODEL_NAME")
+    hf_token = os.environ.get("HF_TOKEN")
     
     # 1. IMMEDIATE PRINT OF START BLOCK
     print(f"[START] task={task_level}", flush=True)
@@ -30,10 +31,10 @@ def run_inference():
     
     try:
         # 1. Initialize OpenAI client with the mandatory SST Proxy credentials
-        # The validator injects these values into the execution environment.
+        # Use API_BASE_URL and API_KEY strictly as provided by the platform.
         client = OpenAI(
-            base_url=os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1"),
-            api_key=os.environ.get("API_KEY", os.environ.get("HF_TOKEN"))
+            base_url=os.environ.get("API_BASE_URL"),
+            api_key=os.environ.get("API_KEY")
         )
 
         for step in range(max_steps):
