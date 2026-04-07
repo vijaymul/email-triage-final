@@ -20,13 +20,18 @@ class AgentOutput(BaseModel):
     action: Action
 
 def run_inference(task_level: str = "easy", max_steps: int = 10):
+    print(f"[START] task={task_level}", flush=True)
     env = EmailEnv(task_level=task_level)
     obs = env.reset()
     
     print(f"--- Starting Round 1 Task Level: {task_level.upper()} ---")
     
+    final_reward = 0.0
+    total_steps = 0
+    
     for step in range(max_steps):
-        print(f"\n[Step {step + 1}]")
+        total_steps = step + 1
+        print(f"\n[Step {total_steps}]")
         
         # Serialize the observation to prompt the agent
         obs_json = obs.model_dump_json(indent=2)
@@ -78,12 +83,16 @@ def run_inference(task_level: str = "easy", max_steps: int = 10):
 
         # Step the environment with our strictly typed agent action
         obs, reward = env.step(action)
+        final_reward = reward.score
         
         print(f"Score: {reward.score} | Reason: {reward.reason}")
+        print(f"[STEP] step={total_steps} reward={reward.score}", flush=True)
         
         if reward.is_done:
             print("\n>> Evaluation Completed!")
             break
+
+    print(f"[END] task={task_level} score={final_reward} steps={total_steps}", flush=True)
 
 if __name__ == "__main__":
     # Test your environments locally by altering the difficulty parameter
