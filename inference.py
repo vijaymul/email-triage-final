@@ -18,7 +18,7 @@ def run_inference():
     task_level = os.environ.get("TASK_LEVEL", "hard").lower()
     max_steps = int(os.environ.get("MAX_STEPS", "10"))
     # Validate required environment variables for the platform proxy
-    required_vars = ["API_BASE_URL", "API_KEY", "MODEL_NAME"]
+    required_vars = ["API_BASE_URL", "API_KEY"]
     missing_vars = [var for var in required_vars if var not in os.environ]
     if missing_vars:
         print(f"CRITICAL ERROR: Missing required environment variables: {', '.join(missing_vars)}", file=sys.stderr)
@@ -27,7 +27,7 @@ def run_inference():
         print(f"[END] task={task_level} score=0.0 steps=0", flush=True)
         sys.exit(1)
 
-    model_name = os.environ["MODEL_NAME"]
+    model_name = os.environ.get("MODEL_NAME", "gpt-4o")
     hf_token = os.environ.get("HF_TOKEN")
     
     # 1. IMMEDIATE PRINT OF START BLOCK
