@@ -17,7 +17,17 @@ def run_inference():
     # Read configuration from environment with standard defaults
     task_level = os.environ.get("TASK_LEVEL", "hard").lower()
     max_steps = int(os.environ.get("MAX_STEPS", "10"))
-    model_name = os.environ.get("MODEL_NAME")
+    # Validate required environment variables for the platform proxy
+    required_vars = ["API_BASE_URL", "API_KEY", "MODEL_NAME"]
+    missing_vars = [var for var in required_vars if var not in os.environ]
+    if missing_vars:
+        print(f"CRITICAL ERROR: Missing required environment variables: {', '.join(missing_vars)}", file=sys.stderr)
+        # Still print START/END for pipeline consistency if possible, but exit
+        print(f"[START] task={task_level}", flush=True)
+        print(f"[END] task={task_level} score=0.0 steps=0", flush=True)
+        sys.exit(1)
+
+    model_name = os.environ["MODEL_NAME"]
     hf_token = os.environ.get("HF_TOKEN")
     
     # 1. IMMEDIATE PRINT OF START BLOCK
@@ -33,8 +43,8 @@ def run_inference():
         # 1. Initialize OpenAI client with the mandatory SST Proxy credentials
         # Use API_BASE_URL and API_KEY strictly as provided by the platform.
         client = OpenAI(
-            base_url=os.environ.get("API_BASE_URL"),
-            api_key=os.environ.get("API_KEY")
+            base_url=os.environ["API_BASE_URL"],
+            api_key=os.environ["API_KEY"]
         )
 
         for step in range(max_steps):
